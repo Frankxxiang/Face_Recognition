@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        .image-preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            margin-top: 10px;
+        }
+        .faces {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Face Recognition</h1>
+        <input type="file" id="imageUpload" accept="image/*">
+        <img id="imagePreview" class="image-preview" src="" alt="Image Preview">
+        <button id="uploadButton">Upload Image</button>
+        <div id="result"></div>
+        <div class="faces" id="faces"></div>
+    </div>
+
+    <script>
+        document.getElementById('imageUpload').addEventListener('change', function() {
+            const reader = new FileReader();
+            reader.onload = function() {
+                document.getElementById('imagePreview').src = reader.result;
+            };
+            reader.readAsDataURL(this.files[0]);
+        });
+
+        document.getElementById('uploadButton').addEventListener('click', function() {
+            const file = document.getElementById('imageUpload').files[0];
+            if (!file) {
+                alert('Please select an image first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            fetch('http://localhost:5000/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(data.message);
+                    fetchFaces();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        function fetchFaces() {
+            fetch('http://localhost:5000/faces')
+                .then(response => response.json())
+                .then(faces => {
+                    const facesContainer = document.getElementById('faces');
+                    facesContainer.innerHTML = '';
+
+                    faces.forEach(face => {
+                        const faceDiv = document.createElement('div');
+                        faceDiv.textContent = `ID: ${face[0]}, Name: ${face[1]}`;
+                        facesContainer.appendChild(faceDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        fetchFaces();
+    </script>
+</body>
+</html>
