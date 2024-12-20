@@ -30,3 +30,19 @@ button {
 #results {
     margin-top: 20px;
 }
+
+#imagesContainer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px; /* 图片之间的间距 */
+    margin-top: 20px;
+}
+
+#imagesContainer img {
+    width: 100px; /* 图片宽度 */
+    height: 100px; /* 图片高度 */
+    object-fit: cover; /* 保持图片比例 */
+    border-radius: 5px; /* 图片圆角 */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* 图片阴影 */
+}

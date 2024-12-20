@@ -1,11 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import face_recognition
 import sqlite3
 import numpy as np
 import cv2
 import os
-from flask import send_from_directory
+import atexit
 
 
 # 创建 Flask 应用实例
@@ -45,28 +45,46 @@ def upload_image():
         return jsonify({"error": "No faces found"}), 400
 
     # 取第一个面部编码
-    face_encoding = face_encodings[0]
-    # 将面部编码转换为二进制数据
-    face_encoding_blob = np.array(face_encoding).tobytes()
+    counter = 1;
+    for face_encoding in face_encodings:
+        # 将面部编码转换为二进制数据
+        face_encoding_blob = np.array(face_encoding).tobytes()
+        
+        # 创建动态命名的人名
+        person_name = f"people{counter}"
 
-    # 将面部编码保存到数据库
-    cursor.execute('''
-    INSERT INTO faces (person_name, face_encoding)
-    VALUES (?, ?)
-    ''', ('Unknown', face_encoding_blob))
+        # 将面部编码保存到数据库
+        cursor.execute('''
+        INSERT INTO faces (person_name, face_encoding)
+        VALUES (?, ?)
+        ''', (person_name, face_encoding_blob))
+        
+        #增加计数器
+        counter+=1
     conn.commit()
     print("Faces stored!")
 
     # 截取面部图像并保存为文件
+    face_filenames =[]
     face_locations = face_recognition.face_locations(image)
-    top, right, bottom, left = face_locations[0]
-    face_image = image[top:bottom, left:right]
-    face_image = cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR)  # 转换为BGR格式以便OpenCV处理
-    face_filename = f"static/faces/face_{cursor.lastrowid}.jpg"
-    cv2.imwrite(face_filename, face_image)
 
+    # 初始化计数器
+    face_counter = 1
+
+    for face_location in face_locations:
+        top, right, bottom, left = face_location
+        face_image = image[top:bottom, left:right]
+        face_image = cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR)  # 转换为BGR格式以便OpenCV处理
+        face_filename = f"static/faces/face_{face_counter}.jpg"
+        face_counter+=1
+        face_filenames.append(face_filename)
+        #用于将图像保存到文件
+        cv2.imwrite(face_filename, face_image)
+        
+    for i in face_filenames:
+        print(i)
     # 返回成功信息
-    return jsonify({"message": "Face encoding stored", "image_url": face_filename}), 200
+    return jsonify({"message": "Face encoding stored", "image_urls": face_filenames}), 200
 
 # 定义获取所有面部信息的路由
 @app.route('/faces', methods=['GET'])
@@ -122,6 +140,23 @@ def compare_faces():
 def get_face_image(filename):
     return send_from_directory('static/faces', filename)
 
+# 清理函数，删除数据库中的所有面部编码信息并删除抓取到的文件
+def cleanup():
+    print("Cleaning up database and files...")
+    cursor.execute('DELETE FROM faces')
+    conn.commit()
+    folder = 'static/faces'
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(f"Error deleting file {file_path}: {e}")
+    print("Cleanup completed!")
+    
+# 注册清理函数
+atexit.register(cleanup)
 
 # 启动 Flask 应用
 if __name__ == '__main__':
