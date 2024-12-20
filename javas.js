@@ -18,6 +18,9 @@ async function uploadImage() {
         const result = await response.json();
         if (response.ok) {
             document.getElementById('message').innerText = result.message;
+            const faceImage = document.getElementById('faceImage');
+            faceImage.src = `http://127.0.0.1:5000/${result.image_url}`;
+            faceImage.style.display = 'block';
         } else {
             document.getElementById('message').innerText = result.error;
         }
@@ -55,7 +58,6 @@ async function compareImage() {
         document.getElementById('results').innerText = 'An error occurred.';
     }
 }
-
 
 async function get_faces(){
     const input = document.getElementById('imageUpload');

@@ -5,6 +5,8 @@ import sqlite3
 import numpy as np
 import cv2
 import os
+from flask import send_from_directory
+
 
 # 创建 Flask 应用实例
 app = Flask(__name__)
@@ -29,6 +31,7 @@ print("database initialized!")
 # 定义上传图片的路由
 @app.route('/upload', methods=['POST'])
 def upload_image():
+    print("line 34,app.py")
     # 获取上传的文件
     file = request.files['image']
     # 使用 face_recognition 加载图片
@@ -54,8 +57,16 @@ def upload_image():
     conn.commit()
     print("Faces stored!")
 
+    # 截取面部图像并保存为文件
+    face_locations = face_recognition.face_locations(image)
+    top, right, bottom, left = face_locations[0]
+    face_image = image[top:bottom, left:right]
+    face_image = cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR)  # 转换为BGR格式以便OpenCV处理
+    face_filename = f"static/faces/face_{cursor.lastrowid}.jpg"
+    cv2.imwrite(face_filename, face_image)
+
     # 返回成功信息
-    return jsonify({"message": "Face encoding stored"}), 200
+    return jsonify({"message": "Face encoding stored", "image_url": face_filename}), 200
 
 # 定义获取所有面部信息的路由
 @app.route('/faces', methods=['GET'])
@@ -106,6 +117,11 @@ def compare_faces():
         return jsonify({"matches": results}), 200
     else:
         return jsonify({"matches": []}), 200
+
+@app.route('/faces/<filename>')
+def get_face_image(filename):
+    return send_from_directory('static/faces', filename)
+
 
 # 启动 Flask 应用
 if __name__ == '__main__':
