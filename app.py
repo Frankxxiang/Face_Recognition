@@ -65,17 +65,28 @@ def upload_image():
     print("Faces stored!")
 
     # 截取面部图像并保存为文件
-    face_filenames =[]
-    face_locations = face_recognition.face_locations(image)
+    #文件夹相对路径
+    face_folder='static/faces'
+    
+    #创建列表包含所有文件夹里的图片
+    
+    existing_files=[f for f in os.listdir(face_folder) if f.endswith('.jpg')]
+    
+    #初始化facecounter，方便命名
+    face_counter = len(existing_files)+1
+    print(face_counter)
+    
 
-    # 初始化计数器
-    face_counter = 1
+    # 截取面部图像并保存为图片
+    face_filenames =[]
+    #facelocations:包含上传图片image中左右人脸位置loacation的集合
+    face_locations = face_recognition.face_locations(image)
 
     for face_location in face_locations:
         top, right, bottom, left = face_location
         face_image = image[top:bottom, left:right]
         face_image = cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR)  # 转换为BGR格式以便OpenCV处理
-        face_filename = f"static/faces/face_{face_counter}.jpg"
+        face_filename = f"{face_folder}/faces{face_counter}.jpg"
         face_counter+=1
         face_filenames.append(face_filename)
         #用于将图像保存到文件
